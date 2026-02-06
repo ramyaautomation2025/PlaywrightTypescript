@@ -1,0 +1,71 @@
+parameters:
+- name: environmentToRun
+  default:
+
+steps:
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore'
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+    feedsToUse: 'select'
+
+- task: DotNetCoreCLI@2
+  displayName: Build Project
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'
+    arguments: '--no-restore /p:WarningLevel=0'
+
+- task: DownloadPipelineArtifact@2
+  inputs:
+    buildType: 'current'
+    targetPath: '$(System.ArtifactsDirectory)'
+
+- script: |
+    cd $(System.ArtifactsDirectory)
+    dir
+    cd Final
+    dir
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo '$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)'
+      echo '$(Build.DefinitionName)'     
+      echo "##vso[task.setvariable variable=buildName]$(Build.DefinitionName)"
+      echo "##vso[task.setvariable variable=buildUrl]$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo '$(buildUrl)'
+      echo '$(buildName)'
+
+- task: DotNetCoreCLI@2
+  displayName: Run Project
+  inputs:
+    command: 'run'
+    projects: '**/*.csproj'
+    arguments: '--no-restore /p:WarningLevel=0 -- testresultsdirectory=$(System.ArtifactsDirectory)'
+
+- task: PowerShell@2
+  inputs:
+    filePath: 'DCBankAutomation/ScriptAndYmlFiles/ScriptFiles/Prepare-TestExecutionSummary.ps1'
+    arguments: '$(System.ArtifactsDirectory) $(buildUrl) $(Build.DefinitionName) ${{ parameters.environmentToRun }}'
+  continueOnError: true
+
+- script: |
+    cd $(System.ArtifactsDirectory)
+    dir
+    cd Final
+    dir
+    
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(System.ArtifactsDirectory)/Final'
+    artifact: 'FinalReport'
+    publishLocation: 'pipeline'

@@ -1,0 +1,52 @@
+parameters:
+- name: jobName
+  default:
+- name: isMultiSuiteExecution
+  default: false
+
+steps:
+
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo Write your commands here
+      echo  '$(System.ArtifactsDirectory)'
+      dir
+      cd $(System.ArtifactsDirectory)
+      dir
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)\DCBankAutomation'
+    Contents: '**\TestResults\**\**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\TestResults'
+    flattenFolders: true
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+         $sourcePath = "$(Build.ArtifactStagingDirectory)\TestResults"
+         $destinationPath = "$sourcePath\extent"
+      
+          # Create the 'extent' folder if it doesn't exist
+          if (!(Test-Path -Path $destinationPath)) {
+              New-Item -ItemType Directory -Path $destinationPath
+          }
+      
+          # Move all files except .html, .json, .txt, .md files to the 'extent' folder
+          Get-ChildItem -Path $sourcePath -File | Where-Object { $_.Extension -notin ".html", ".json", ".xml", ".txt", ".md" } | Move-Item -Destination $destinationPath
+          if ('${{parameters.isMultiSuiteExecution}}' -eq 'false') {
+            Write-Host "##vso[task.uploadsummary]$(Build.ArtifactStagingDirectory)\TestResults\TestExecutionSummary.md"
+          }
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'NUnit'
+    testResultsFiles: '**/nunit.xml'
+    mergeTestResults: true
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)/TestResults/'
+    artifact: '${{ parameters.jobName }}'
