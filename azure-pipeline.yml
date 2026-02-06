@@ -1,0 +1,51 @@
+parameters:
+- name: environment
+  displayName: Environment
+  type: string
+  default: TestEnv
+
+trigger:
+  branches:
+    include:
+      - main   # or your default branch
+
+# Example schedule (uncomment if needed)
+#schedules:
+#- cron: '0 5 * * 1-5'   # 5:00 AM UTC (Mon–Fri)
+#  displayName: Schedule-1
+#  branches:
+#    include:
+#      - develop
+#  always: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: RunPlaywrightTests
+  displayName: Run Playwright Tests
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm ci
+      npx playwright install --with-deps
+      npx playwright test --reporter=dot,junit --output=test-results
+    displayName: 'Run Playwright Tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: '**/test-results/*.xml'
+      testRunTitle: 'Playwright Test Results'
+
+- job: Generate_FinalReport_Summary
+  displayName: Generate Final Report Summary
+  dependsOn: RunPlaywrightTests
+  condition: succeededOrFailed()
+  steps:
+  - template: Templates/test-final-report-and-summary.yml
+    parameters:
+      environmentToRun: ${{ parameters.environment }}      
