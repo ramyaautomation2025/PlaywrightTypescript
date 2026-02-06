@@ -19,7 +19,7 @@ trigger:
 #  always: true
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: Default   
 
 jobs:
 - job: RunPlaywrightTests
