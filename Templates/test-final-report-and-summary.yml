@@ -54,7 +54,7 @@ steps:
 
 - task: PowerShell@2
   inputs:
-    filePath: 'DCBankAutomation/ScriptAndYmlFiles/ScriptFiles/Prepare-TestExecutionSummary.ps1'
+    filePath: 'PlaywrightTypescript/scriptFiles/Prepare-TestExecutionSummary.ps1'
     arguments: '$(System.ArtifactsDirectory) $(buildUrl) $(Build.DefinitionName) ${{ parameters.environmentToRun }}'
   continueOnError: true
 
