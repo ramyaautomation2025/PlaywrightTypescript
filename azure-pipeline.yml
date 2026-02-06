@@ -19,7 +19,8 @@ trigger:
 #  always: true
 
 pool:
-  vmImage: Default   
+  name: Azure Pipelines
+   
 
 jobs:
 - job: RunPlaywrightTests
